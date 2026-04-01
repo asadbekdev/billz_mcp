@@ -27,7 +27,8 @@ Add to your `~/.cursor/mcp.json`:
       "command": "node",
       "args": ["/absolute/path/to/billz_mcp/dist/index.js"],
       "env": {
-        "BILLZ_SECRET_KEY": "your_secret_key_here"
+        "BILLZ_SECRET_KEY": "your_secret_key_here",
+        "BILLZ_PLATFORM_ID": "7d4a4c38-dd84-4902-b744-0488b80a4c01"
       }
     }
   }
@@ -40,9 +41,18 @@ Or run directly:
 BILLZ_SECRET_KEY=your_key node dist/index.js
 ```
 
-## Available Tools (60+)
+## Environment Variables
 
-### Products
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `BILLZ_SECRET_KEY` | **Yes** | API integration key from BILLZ Admin |
+| `BILLZ_PLATFORM_ID` | No | Platform ID header value (has default) |
+
+See `.env.example` for a template.
+
+## Available Tools (80+)
+
+### Products (4 tools)
 | Tool | Description |
 |------|-------------|
 | `billz_get_products` | List products (with delta sync via `last_updated_date`) |
@@ -50,7 +60,7 @@ BILLZ_SECRET_KEY=your_key node dist/index.js
 | `billz_patch_product_custom_field` | Edit custom field on a product |
 | `billz_create_product` | Create a single product |
 
-### Customers
+### Customers (10 tools)
 | Tool | Description |
 |------|-------------|
 | `billz_create_customer` | Create customer |
@@ -64,7 +74,7 @@ BILLZ_SECRET_KEY=your_key node dist/index.js
 | `billz_get_debt_stats` | Debt statistics |
 | `billz_get_debts` | List debts |
 
-### Sales
+### Sales (15 tools)
 | Tool | Description |
 |------|-------------|
 | `billz_create_sale` | Open new sale draft |
@@ -78,8 +88,12 @@ BILLZ_SECRET_KEY=your_key node dist/index.js
 | `billz_get_sale_details` | Sale details |
 | `billz_get_postponed_sales` | List postponed sales |
 | `billz_get_draft_sales` | List draft sales |
+| `billz_remove_item_from_draft` | Remove product from draft |
+| `billz_delete_draft` | Delete a draft sale |
+| `billz_cancel_postponed` | Cancel postponed sale |
+| `billz_search_sales` | Advanced sales search (v3) |
 
-### Supplier Orders
+### Supplier Orders (6 tools)
 | Tool | Description |
 |------|-------------|
 | `billz_create_supplier_order` | Create order |
@@ -89,7 +103,7 @@ BILLZ_SECRET_KEY=your_key node dist/index.js
 | `billz_get_supplier_orders` | List orders |
 | `billz_get_supplier_order_products` | Products in order |
 
-### Transfers
+### Transfers (8 tools)
 | Tool | Description |
 |------|-------------|
 | `billz_get_transfers` | List transfers |
@@ -101,21 +115,71 @@ BILLZ_SECRET_KEY=your_key node dist/index.js
 | `billz_update_transfer` | Update transfer |
 | `billz_get_transfer_products` | Products in transfer |
 
-### Imports
+### Imports (2 tools)
 | Tool | Description |
 |------|-------------|
 | `billz_import_products` | Bulk import products (async) |
 | `billz_get_imports` | List imports |
 
-### Promotions
+### Promotions (3 tools)
 | Tool | Description |
 |------|-------------|
 | `billz_get_promos` | List promotions |
 | `billz_get_promo` | Promo details |
 | `billz_get_promo_products` | Products in promo |
 
-### Reports (18 tools)
-General, Transactions, Products, Product Performance, Imports, Sales by Suppliers, Order Returns, Stocktaking, Stock, Write-offs, Sellers, Customers, Customer Purchases, Profit & Loss, Cash Flow, Transfers.
+### Write-offs (5 tools)
+| Tool | Description |
+|------|-------------|
+| `billz_create_writeoff` | Create write-off document |
+| `billz_add_product_to_writeoff` | Add product to write-off |
+| `billz_cancel_writeoff` | Cancel write-off |
+| `billz_complete_writeoff` | Finalize write-off |
+| `billz_get_writeoff_reasons` | List write-off reasons |
 
-### Auxiliary
+### Stocktaking (1 tool)
+| Tool | Description |
+|------|-------------|
+| `billz_get_stocktakings` | List stocktaking sessions |
+
+### Certificates / Gift Cards (5 tools)
+| Tool | Description |
+|------|-------------|
+| `billz_search_gift_cards` | Search gift cards |
+| `billz_create_gift_card` | Create gift card |
+| `billz_add_certificate_to_sale` | Add certificate to sale |
+| `billz_remove_certificate_from_sale` | Remove certificate from sale |
+| `billz_pay_with_certificate` | Pay with gift card |
+
+### Reports (25 tools)
+General, Transactions, Products, Product Performance, Imports, Sales by Suppliers, Order Returns, Stocktaking Summary, Stock, Write-offs, Sellers, Customers, Customer Purchases, Profit & Loss, Cash Flow, Transfers.
+
+### Auxiliary (14 tools)
 Company, Shops, Users, Suppliers, Categories, Brands, Product Characteristics, Measurement Units, Product Types, Cashboxes, Payment Types, Currencies, Currency Rates, Report Payment Types.
+
+## MCP Resources
+
+The server also exposes API documentation as MCP resources. LLMs can read endpoint details on demand via the `billz://docs/{key}` URI pattern.
+
+## Project Structure
+
+```
+src/
+  index.ts              Server init, imports all modules
+  billz-client.ts       HTTP client with JWT auth & 401 retry
+  helpers.ts            Shared ok() response helper
+  resources.ts          MCP resources (API docs)
+  tools/
+    products.ts         Product tools
+    customers.ts        Customer tools
+    sales.ts            Sales, drafts, postponed tools
+    orders.ts           Supplier order tools
+    transfers.ts        Transfer tools
+    imports.ts          Import tools
+    promotions.ts       Promotion tools
+    reports.ts          Report tools
+    auxiliary.ts        Reference data tools
+    writeoffs.ts        Write-off tools
+    stocktaking.ts      Stocktaking tools
+    certificates.ts     Gift card / certificate tools
+```
