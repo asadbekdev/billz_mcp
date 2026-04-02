@@ -23,7 +23,19 @@ npm run build
 
 ### 2. Get your API key
 
-In BILLZ Admin → Settings → Integrations → create an API key.
+In BILLZ Admin → Settings → Integrations → create an API key. Grant the key **read** access to Products, Sales, Reports, etc. (permission matrix in BILLZ Admin).
+
+### 2b. Verify read APIs (optional)
+
+Calls the same HTTP paths as `BILLZ_MCP_MODE=analytics` (18 read tools). Use the **same** secret you pass to MCP:
+
+```bash
+cd billz_mcp
+npm install
+BILLZ_SECRET_KEY='your_key' npm run smoke:read
+```
+
+You can also put `BILLZ_SECRET_KEY=...` in `billz_mcp/.env`. Exit code **0** means every check passed.
 
 ### 3. Add to Cursor (or any MCP client)
 

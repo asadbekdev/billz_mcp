@@ -15,7 +15,8 @@ export function register(server: McpServer, mode: McpMode) {
       end_date: z.string().optional(),
     },
     async (params) => {
-      const data = await billzFetch("GET", "/v1/orders", { params });
+      // /v1/orders returns 404 — Billz docs: list sales via GET /v3/order-search
+      const data = await billzFetch("GET", "/v3/order-search", { params });
       return ok(data);
     },
   );

@@ -6,6 +6,20 @@ const PLATFORM_ID =
 let cachedToken: string | null = null;
 let tokenExpiry: number = 0;
 
+/** Same unwrap as main app — login returns `{ data: { access_token } }`. */
+function unwrapData<T>(body: unknown): T {
+  if (
+    body &&
+    typeof body === "object" &&
+    "data" in body &&
+    (body as { data: unknown }).data !== null &&
+    (body as { data: unknown }).data !== undefined
+  ) {
+    return (body as { data: T }).data;
+  }
+  return body as T;
+}
+
 export function getPlatformId(): string {
   return PLATFORM_ID;
 }
@@ -14,16 +28,37 @@ async function authenticate(): Promise<string> {
   const secretKey = process.env.BILLZ_SECRET_KEY;
   if (!secretKey) throw new Error("BILLZ_SECRET_KEY env var not set");
 
-  const res = await fetch(`${BASE_URL}/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ secret_token: secretKey }),
-  });
-  if (!res.ok) throw new Error(`Auth failed: ${res.status} ${await res.text()}`);
-  const data = (await res.json()) as { access_token: string };
-  cachedToken = data.access_token;
-  tokenExpiry = Date.now() + 14 * 24 * 60 * 60 * 1000;
-  return cachedToken;
+  const attempts = [{ secret_token: secretKey }, { secret_key: secretKey }];
+  let lastErr = "Billz auth failed";
+
+  for (const loginBody of attempts) {
+    const res = await fetch(`${BASE_URL}/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", accept: "application/json" },
+      body: JSON.stringify(loginBody),
+    });
+    const body = (await res.json()) as unknown;
+    if (!res.ok) {
+      lastErr =
+        typeof body === "object" && body && "message" in body
+          ? String((body as { message?: string }).message)
+          : JSON.stringify(body);
+      continue;
+    }
+
+    const data = unwrapData<{ access_token?: string }>(body);
+    const token = data.access_token;
+    if (!token) {
+      lastErr = "no access_token in response";
+      continue;
+    }
+
+    cachedToken = token;
+    tokenExpiry = Date.now() + 14 * 24 * 60 * 60 * 1000;
+    return cachedToken;
+  }
+
+  throw new Error(`Billz auth failed: ${lastErr}`);
 }
 
 async function getToken(): Promise<string> {
@@ -86,7 +121,13 @@ async function doFetch(
   if (options.params) {
     const q = Object.entries(options.params)
       .filter(([, v]) => v !== undefined && v !== "")
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+      .map(([k, v]) => {
+        const raw = String(v);
+        const encoded = raw.includes(",")
+          ? raw.split(",").map(encodeURIComponent).join(",")
+          : encodeURIComponent(raw);
+        return `${encodeURIComponent(k)}=${encoded}`;
+      })
       .join("&");
     if (q) url += (url.includes("?") ? "&" : "?") + q;
   }
