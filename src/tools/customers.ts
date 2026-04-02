@@ -1,9 +1,47 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { billzFetch } from "../billz-client.js";
-import { ok } from "../helpers.js";
+import { ok, type McpMode } from "../helpers.js";
 
-export function register(server: McpServer) {
+export function register(server: McpServer, mode: McpMode) {
+  server.tool(
+    "billz_get_customers",
+    "Get list of customers",
+    {
+      limit: z.number().int().optional(),
+      page: z.number().int().optional(),
+      search: z.string().optional(),
+      phone_number: z.string().optional(),
+      chat_id: z.string().optional(),
+    },
+    async (params) => {
+      const data = await billzFetch("GET", "/v1/client", { params });
+      return ok(data);
+    },
+  );
+
+  server.tool(
+    "billz_get_customer",
+    "Get detailed info for a single customer",
+    { id: z.string().describe("Customer UUID") },
+    async ({ id }) => {
+      const data = await billzFetch("GET", `/v1/customer/${id}`);
+      return ok(data);
+    },
+  );
+
+  server.tool(
+    "billz_get_debt_stats",
+    "Get debt statistics for a customer",
+    { customer_id: z.string() },
+    async ({ customer_id }) => {
+      const data = await billzFetch("GET", "/v1/debt-stats", { params: { customer_id } });
+      return ok(data);
+    },
+  );
+
+  if (mode !== "full") return;
+
   server.tool(
     "billz_create_customer",
     "Create a new customer",
@@ -22,22 +60,6 @@ export function register(server: McpServer) {
   );
 
   server.tool(
-    "billz_get_customers",
-    "Get list of customers",
-    {
-      limit: z.number().int().optional(),
-      page: z.number().int().optional(),
-      search: z.string().optional(),
-      phone_number: z.string().optional(),
-      chat_id: z.string().optional(),
-    },
-    async (params) => {
-      const data = await billzFetch("GET", "/v1/client", { params });
-      return ok(data);
-    },
-  );
-
-  server.tool(
     "billz_update_customer",
     "Update customer info",
     {
@@ -50,16 +72,6 @@ export function register(server: McpServer) {
     },
     async ({ id, ...body }) => {
       const data = await billzFetch("PUT", `/v1/client/${id}`, { body });
-      return ok(data);
-    },
-  );
-
-  server.tool(
-    "billz_get_customer",
-    "Get detailed info for a single customer",
-    { id: z.string().describe("Customer UUID") },
-    async ({ id }) => {
-      const data = await billzFetch("GET", `/v1/customer/${id}`);
       return ok(data);
     },
   );
@@ -107,16 +119,6 @@ export function register(server: McpServer) {
     {},
     async () => {
       const data = await billzFetch("GET", "/v1/loyalty-program");
-      return ok(data);
-    },
-  );
-
-  server.tool(
-    "billz_get_debt_stats",
-    "Get debt statistics for a customer",
-    { customer_id: z.string() },
-    async ({ customer_id }) => {
-      const data = await billzFetch("GET", "/v1/debt-stats", { params: { customer_id } });
       return ok(data);
     },
   );

@@ -1,9 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { billzFetch } from "../billz-client.js";
-import { ok } from "../helpers.js";
+import { ok, type McpMode } from "../helpers.js";
 
-export function register(server: McpServer) {
+export function register(server: McpServer, _mode: McpMode) {
   server.tool(
     "billz_import_products",
     "Import products (create or update) in bulk. Async — response comes via webhook.",

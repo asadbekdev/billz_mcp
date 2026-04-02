@@ -1,18 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { billzFetch } from "../billz-client.js";
-import { ok } from "../helpers.js";
+import { ok, type McpMode } from "../helpers.js";
 
-export function register(server: McpServer) {
-  server.tool(
-    "billz_get_company",
-    "Get current company info",
-    {},
-    async () => {
-      const data = await billzFetch("GET", "/v1/company");
-      return ok(data);
-    },
-  );
+export function register(server: McpServer, mode: McpMode) {
+  // ── Analytics tools (always registered) ──────────────────────────────
 
   server.tool(
     "billz_get_shops",
@@ -23,33 +15,6 @@ export function register(server: McpServer) {
     },
     async (params) => {
       const data = await billzFetch("GET", "/v1/shop", { params });
-      return ok(data);
-    },
-  );
-
-  server.tool(
-    "billz_get_users",
-    "Get list of users (cashiers, sellers)",
-    {
-      limit: z.number().int().optional(),
-      page: z.number().int().optional(),
-    },
-    async (params) => {
-      const data = await billzFetch("GET", "/v1/user", { params });
-      return ok(data);
-    },
-  );
-
-  server.tool(
-    "billz_get_suppliers",
-    "Get list of suppliers",
-    {
-      limit: z.number().int().optional(),
-      page: z.number().int().optional(),
-      search: z.string().optional(),
-    },
-    async (params) => {
-      const data = await billzFetch("GET", "/v1/supplier", { params });
       return ok(data);
     },
   );
@@ -89,6 +54,47 @@ export function register(server: McpServer) {
     { limit: z.number().int().optional() },
     async (params) => {
       const data = await billzFetch("GET", "/v2/product-characteristic", { params });
+      return ok(data);
+    },
+  );
+
+  if (mode !== "full") return;
+
+  // ── Full-mode auxiliary tools ────────────────────────────────────────
+
+  server.tool(
+    "billz_get_company",
+    "Get current company info",
+    {},
+    async () => {
+      const data = await billzFetch("GET", "/v1/company");
+      return ok(data);
+    },
+  );
+
+  server.tool(
+    "billz_get_users",
+    "Get list of users (cashiers, sellers)",
+    {
+      limit: z.number().int().optional(),
+      page: z.number().int().optional(),
+    },
+    async (params) => {
+      const data = await billzFetch("GET", "/v1/user", { params });
+      return ok(data);
+    },
+  );
+
+  server.tool(
+    "billz_get_suppliers",
+    "Get list of suppliers",
+    {
+      limit: z.number().int().optional(),
+      page: z.number().int().optional(),
+      search: z.string().optional(),
+    },
+    async (params) => {
+      const data = await billzFetch("GET", "/v1/supplier", { params });
       return ok(data);
     },
   );

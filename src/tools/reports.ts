@@ -1,9 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { billzFetch } from "../billz-client.js";
-import { ok } from "../helpers.js";
+import { ok, type McpMode } from "../helpers.js";
 
-export function register(server: McpServer) {
+export function register(server: McpServer, mode: McpMode) {
+  // ── Analytics tools (always registered) ──────────────────────────────
+
   server.tool(
     "billz_report_general_table",
     "General summary report table (sales, products, customers, sellers stats)",
@@ -38,6 +40,78 @@ export function register(server: McpServer) {
   );
 
   server.tool(
+    "billz_report_products_table",
+    "Product sales report table",
+    {
+      start_date: z.string(),
+      end_date: z.string().optional(),
+      shop_ids: z.string().optional(),
+      currency: z.string().optional(),
+      detalization: z.enum(["day", "week", "month", "year"]).optional(),
+      detalization_by_position: z.boolean().optional(),
+      price_type: z.number().int().min(0).max(3).optional().describe("0=all 1=retail 2=free 3=wholesale"),
+      limit: z.number().int().optional(),
+      page: z.number().int().optional(),
+    },
+    async (params) => {
+      const data = await billzFetch("GET", "/v1/product-general-table", { params });
+      return ok(data);
+    },
+  );
+
+  server.tool(
+    "billz_report_customers_table",
+    "Customer statistics report table",
+    {
+      start_date: z.string(),
+      end_date: z.string().optional(),
+      shop_ids: z.string().optional(),
+      currency: z.string().optional(),
+      limit: z.number().int().optional(),
+      page: z.number().int().optional(),
+    },
+    async (params) => {
+      const data = await billzFetch("GET", "/v1/customer-general-table", { params });
+      return ok(data);
+    },
+  );
+
+  server.tool(
+    "billz_report_profit_loss",
+    "Profit and loss report",
+    {
+      start_date: z.string(),
+      end_date: z.string().optional(),
+      shop_ids: z.string().optional(),
+      currency: z.string().optional(),
+    },
+    async (params) => {
+      const data = await billzFetch("GET", "/v1/profit-and-lose", { params });
+      return ok(data);
+    },
+  );
+
+  server.tool(
+    "billz_report_stock",
+    "Stock on hand report (inventory levels at a specific date)",
+    {
+      report_date: z.string().describe("Format: YYYY-MM-DD"),
+      shop_ids: z.string().optional(),
+      currency: z.string().optional(),
+      limit: z.number().int().optional(),
+      page: z.number().int().optional(),
+    },
+    async (params) => {
+      const data = await billzFetch("GET", "/v1/stock-report-table", { params });
+      return ok(data);
+    },
+  );
+
+  if (mode !== "full") return;
+
+  // ── Full-mode report tools ───────────────────────────────────────────
+
+  server.tool(
     "billz_report_transactions_table",
     "Transactions report table",
     {
@@ -69,26 +143,6 @@ export function register(server: McpServer) {
     },
     async (params) => {
       const data = await billzFetch("GET", "/v1/transaction-report-totals", { params });
-      return ok(data);
-    },
-  );
-
-  server.tool(
-    "billz_report_products_table",
-    "Product sales report table",
-    {
-      start_date: z.string(),
-      end_date: z.string().optional(),
-      shop_ids: z.string().optional(),
-      currency: z.string().optional(),
-      detalization: z.enum(["day", "week", "month", "year"]).optional(),
-      detalization_by_position: z.boolean().optional(),
-      price_type: z.number().int().min(0).max(3).optional().describe("0=all 1=retail 2=free 3=wholesale"),
-      limit: z.number().int().optional(),
-      page: z.number().int().optional(),
-    },
-    async (params) => {
-      const data = await billzFetch("GET", "/v1/product-general-table", { params });
       return ok(data);
     },
   );
@@ -264,22 +318,6 @@ export function register(server: McpServer) {
   );
 
   server.tool(
-    "billz_report_stock",
-    "Stock on hand report (inventory levels at a specific date)",
-    {
-      report_date: z.string().describe("Format: YYYY-MM-DD"),
-      shop_ids: z.string().optional(),
-      currency: z.string().optional(),
-      limit: z.number().int().optional(),
-      page: z.number().int().optional(),
-    },
-    async (params) => {
-      const data = await billzFetch("GET", "/v1/stock-report-table", { params });
-      return ok(data);
-    },
-  );
-
-  server.tool(
     "billz_report_write_offs",
     "Write-offs report table",
     {
@@ -310,23 +348,6 @@ export function register(server: McpServer) {
     },
     async (params) => {
       const data = await billzFetch("GET", "/v1/seller-general-table", { params });
-      return ok(data);
-    },
-  );
-
-  server.tool(
-    "billz_report_customers_table",
-    "Customer statistics report table",
-    {
-      start_date: z.string(),
-      end_date: z.string().optional(),
-      shop_ids: z.string().optional(),
-      currency: z.string().optional(),
-      limit: z.number().int().optional(),
-      page: z.number().int().optional(),
-    },
-    async (params) => {
-      const data = await billzFetch("GET", "/v1/customer-general-table", { params });
       return ok(data);
     },
   );
@@ -378,21 +399,6 @@ export function register(server: McpServer) {
     },
     async (params) => {
       const data = await billzFetch("GET", "/v1/customer-purchases-totals", { params });
-      return ok(data);
-    },
-  );
-
-  server.tool(
-    "billz_report_profit_loss",
-    "Profit and loss report",
-    {
-      start_date: z.string(),
-      end_date: z.string().optional(),
-      shop_ids: z.string().optional(),
-      currency: z.string().optional(),
-    },
-    async (params) => {
-      const data = await billzFetch("GET", "/v1/profit-and-lose", { params });
       return ok(data);
     },
   );

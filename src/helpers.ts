@@ -1,5 +1,7 @@
 import type { BillzError } from "./billz-client.js";
 
+export type McpMode = "analytics" | "full";
+
 export function ok(data: unknown) {
   if (isBillzError(data)) {
     return {

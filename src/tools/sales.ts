@@ -1,9 +1,57 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { billzFetch, getPlatformId } from "../billz-client.js";
-import { ok } from "../helpers.js";
+import { ok, type McpMode } from "../helpers.js";
 
-export function register(server: McpServer) {
+export function register(server: McpServer, mode: McpMode) {
+  server.tool(
+    "billz_get_sales",
+    "Get list of completed sales",
+    {
+      limit: z.number().int().optional(),
+      page: z.number().int().optional(),
+      shop_ids: z.string().optional().describe("Comma-separated shop UUIDs"),
+      start_date: z.string().optional(),
+      end_date: z.string().optional(),
+    },
+    async (params) => {
+      const data = await billzFetch("GET", "/v1/orders", { params });
+      return ok(data);
+    },
+  );
+
+  server.tool(
+    "billz_get_sale_details",
+    "Get details of a specific sale",
+    { order_id: z.string() },
+    async ({ order_id }) => {
+      const data = await billzFetch("GET", `/v2/order/${order_id}`);
+      return ok(data);
+    },
+  );
+
+  server.tool(
+    "billz_search_sales",
+    "Search sales with advanced filters (v3 endpoint)",
+    {
+      search: z.string().optional().describe("Search by order number, customer name, phone"),
+      shop_ids: z.string().optional().describe("Comma-separated shop UUIDs"),
+      cashier_ids: z.string().optional().describe("Comma-separated cashier UUIDs"),
+      seller_ids: z.string().optional().describe("Comma-separated seller UUIDs"),
+      start_date: z.string().optional(),
+      end_date: z.string().optional(),
+      status: z.string().optional().describe("e.g. completed, draft, postponed"),
+      limit: z.number().int().optional(),
+      page: z.number().int().optional(),
+    },
+    async (params) => {
+      const data = await billzFetch("GET", "/v3/order-search", { params });
+      return ok(data);
+    },
+  );
+
+  if (mode !== "full") return;
+
   server.tool(
     "billz_create_sale",
     "Create a new sale draft. Returns sale id and order_number.",
@@ -133,32 +181,6 @@ export function register(server: McpServer) {
   );
 
   server.tool(
-    "billz_get_sales",
-    "Get list of completed sales",
-    {
-      limit: z.number().int().optional(),
-      page: z.number().int().optional(),
-      shop_ids: z.string().optional().describe("Comma-separated shop UUIDs"),
-      start_date: z.string().optional(),
-      end_date: z.string().optional(),
-    },
-    async (params) => {
-      const data = await billzFetch("GET", "/v1/orders", { params });
-      return ok(data);
-    },
-  );
-
-  server.tool(
-    "billz_get_sale_details",
-    "Get details of a specific sale",
-    { order_id: z.string() },
-    async ({ order_id }) => {
-      const data = await billzFetch("GET", `/v2/order/${order_id}`);
-      return ok(data);
-    },
-  );
-
-  server.tool(
     "billz_get_postponed_sales",
     "Get list of postponed sales",
     {
@@ -184,8 +206,6 @@ export function register(server: McpServer) {
       return ok(data);
     },
   );
-
-  // --- New: Draft/Postponed management ---
 
   server.tool(
     "billz_remove_item_from_draft",
@@ -225,28 +245,6 @@ export function register(server: McpServer) {
         body: { order_id },
         httpResponse: true,
       });
-      return ok(data);
-    },
-  );
-
-  // --- New: v3 sales search ---
-
-  server.tool(
-    "billz_search_sales",
-    "Search sales with advanced filters (v3 endpoint)",
-    {
-      search: z.string().optional().describe("Search by order number, customer name, phone"),
-      shop_ids: z.string().optional().describe("Comma-separated shop UUIDs"),
-      cashier_ids: z.string().optional().describe("Comma-separated cashier UUIDs"),
-      seller_ids: z.string().optional().describe("Comma-separated seller UUIDs"),
-      start_date: z.string().optional(),
-      end_date: z.string().optional(),
-      status: z.string().optional().describe("e.g. completed, draft, postponed"),
-      limit: z.number().int().optional(),
-      page: z.number().int().optional(),
-    },
-    async (params) => {
-      const data = await billzFetch("GET", "/v3/order-search", { params });
       return ok(data);
     },
   );
